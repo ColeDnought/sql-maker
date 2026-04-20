@@ -59,11 +59,11 @@ Please only submit your final files corresponding to the test set.
 
 For SQL queries, ensure that the name of the submission files (in the `results/` subfolder) are:
 
-- `{t5_ft, ft_scr, gemma}_test.sql`
+- `{t5_ft, t5_scr, test}_test.sql`
 
 For database records, ensure that the name of the submission files (in the `records/` subfolder) are:
 
-- `{t5_ft, ft_scr, gemma}_test.pkl`
+- `{t5_ft, t5_scr, test}_test.pkl`
 
 Note that the predictions in each line of the `.sql` file or in each index of the list within the `.pkl` file must match each natural language query in `data/test.nl` in the order they appear.
 
