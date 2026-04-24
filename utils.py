@@ -4,6 +4,7 @@ import os
 import re
 import pickle
 import random
+import time
 from tqdm import tqdm
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -12,6 +13,7 @@ from typing import List, Any
 import torch
 
 DB_PATH = 'data/flight_database.db'
+QUERY_TIMEOUT_SECONDS = 30
 
 def compute_metrics(gt_path: str, model_path: str, gt_query_records: str = None, model_query_records: str = None):
     '''
@@ -67,6 +69,8 @@ def save_queries_and_records(sql_queries: List[str], sql_path: str, record_path:
         * sql_path (str): Path to save SQL queries
         * record_path (str): Path to save database records associated with queries
     '''
+    sql_queries = [query.replace('\r', ' ').replace('\n', ' ').strip() for query in sql_queries]
+
     # First save the queries
     with open(sql_path, 'w') as f:
         for query in sql_queries:
@@ -92,7 +96,7 @@ def compute_records(processed_qs: List[str]):
         * processed_qs (List[str]): The list of SQL queries to execute
     '''
     num_threads = 10
-    timeout_secs = 120
+    timeout_secs = QUERY_TIMEOUT_SECONDS + 5
 
     pool = ThreadPoolExecutor(num_threads)
     futures = []
@@ -108,6 +112,8 @@ def compute_records(processed_qs: List[str]):
         for future in futures:
             if not future.done():
                 future.cancel()
+    finally:
+        pool.shutdown(wait=False, cancel_futures=True)
             
     recs = []
     error_msgs = []
@@ -124,6 +130,11 @@ def compute_records(processed_qs: List[str]):
 
 def compute_record(query_id, query):
     conn = sqlite3.connect(DB_PATH)
+    start_time = time.monotonic()
+    conn.set_progress_handler(
+        lambda: 1 if time.monotonic() - start_time > QUERY_TIMEOUT_SECONDS else 0,
+        10000,
+    )
     cursor = conn.cursor()
 
     try:
